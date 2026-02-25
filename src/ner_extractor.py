@@ -5,20 +5,11 @@ from resume and job description text using spaCy + custom skill patterns.
 
 import spacy
 import re
+import en_core_web_sm
 from typing import Dict, List
 
-# Load spaCy model (small English model)
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    try:
-        # Try loading via the installed package directly (Streamlit Cloud fix)
-        import en_core_web_sm
-        nlp = en_core_web_sm.load()
-    except ImportError:
-        import subprocess
-        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-        nlp = spacy.load("en_core_web_sm")
+# Load spaCy model directly from installed package
+nlp = en_core_web_sm.load()
 
 
 # ── MASTER SKILLS / TECH KEYWORD LIST ────────────────────────────────────────
@@ -78,11 +69,9 @@ EDUCATION_KEYWORDS = {
 
 
 def extract_tech_skills(text: str) -> List[str]:
-    """Extract tech skills using keyword matching (case-insensitive)."""
     text_lower = text.lower()
     found = []
     for skill in TECH_SKILLS:
-        # Use word boundary matching
         pattern = r'\b' + re.escape(skill) + r'\b'
         if re.search(pattern, text_lower):
             found.append(skill.title() if len(skill) > 3 else skill.upper())
@@ -90,7 +79,6 @@ def extract_tech_skills(text: str) -> List[str]:
 
 
 def extract_education(text: str) -> List[str]:
-    """Extract education-related keywords."""
     text_lower = text.lower()
     found = []
     for kw in EDUCATION_KEYWORDS:
@@ -100,8 +88,7 @@ def extract_education(text: str) -> List[str]:
 
 
 def extract_spacy_entities(text: str) -> Dict[str, List[str]]:
-    """Use spaCy for ORG, GPE, DATE, PERSON entities."""
-    doc = nlp(text[:10000])  # Limit for performance
+    doc = nlp(text[:10000])
     entities = {"ORG": [], "GPE": [], "DATE": [], "PERSON": []}
     for ent in doc.ents:
         if ent.label_ in entities:
@@ -112,7 +99,6 @@ def extract_spacy_entities(text: str) -> Dict[str, List[str]]:
 
 
 def extract_years_experience(text: str) -> str:
-    """Extract years of experience mentioned."""
     patterns = [
         r'(\d+)\+?\s+years?\s+(?:of\s+)?experience',
         r'experience\s+of\s+(\d+)\+?\s+years?',
@@ -125,9 +111,6 @@ def extract_years_experience(text: str) -> str:
 
 
 def extract_entities(text: str) -> Dict[str, List[str]]:
-    """
-    Main extraction function — returns structured entities dict.
-    """
     spacy_ents = extract_spacy_entities(text)
     tech_skills = extract_tech_skills(text)
     education = extract_education(text)
