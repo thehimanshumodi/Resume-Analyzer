@@ -108,7 +108,7 @@ Final score = **40% TF-IDF + 60% Semantic**. Semantic gets higher weight as it c
 
 ## 🙋 Author
 
-Built by [Your Name] as an NLP portfolio project for data science job applications.
+Built by Himanshu Modi as an NLP portfolio project for data science job applications.
 
 ---
 
