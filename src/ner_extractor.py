@@ -1,64 +1,42 @@
 """
-NER Extractor — Extracts skills, tools, organizations, education keywords
-from resume and job description text using spaCy + custom skill patterns.
+NER Extractor — uses spaCy blank model + custom keyword matching.
+No en_core_web_sm needed — works on any environment including Streamlit Cloud.
 """
 
 import spacy
 import re
-import en_core_web_sm
 from typing import Dict, List
 
-# Load spaCy model directly from installed package
-nlp = en_core_web_sm.load()
+# Use blank English model — no download needed!
+nlp = spacy.blank("en")
 
 
-# ── MASTER SKILLS / TECH KEYWORD LIST ────────────────────────────────────────
 TECH_SKILLS = {
-    # Programming Languages
     "python", "java", "javascript", "typescript", "c++", "c#", "r", "scala",
     "go", "rust", "kotlin", "swift", "php", "ruby", "matlab",
-
-    # ML / AI
     "machine learning", "deep learning", "neural networks", "nlp",
     "natural language processing", "computer vision", "reinforcement learning",
     "transfer learning", "generative ai", "llm", "large language models",
     "transformers", "bert", "gpt", "t5", "llama", "rag",
     "retrieval augmented generation", "fine-tuning",
-
-    # ML Libraries
     "scikit-learn", "sklearn", "tensorflow", "keras", "pytorch", "xgboost",
     "lightgbm", "catboost", "huggingface", "spacy", "nltk", "gensim",
     "fastai", "opencv",
-
-    # Data / Analytics
     "pandas", "numpy", "matplotlib", "seaborn", "plotly", "tableau",
     "power bi", "excel", "sql", "nosql",
-
-    # Cloud / MLOps
     "aws", "gcp", "azure", "docker", "kubernetes", "mlflow", "dvc",
     "airflow", "kafka", "spark", "hadoop", "databricks",
-
-    # Databases
     "mysql", "postgresql", "mongodb", "redis", "elasticsearch", "sqlite",
     "bigquery", "snowflake",
-
-    # Web / API
-    "flask", "fastapi", "django", "streamlit", "gradio", "rest api",
-    "graphql",
-
-    # Tools
-    "git", "github", "gitlab", "jupyter", "vs code", "linux",
-    "bash", "shell scripting",
-
-    # Soft skills / roles
+    "flask", "fastapi", "django", "streamlit", "gradio", "rest api", "graphql",
+    "git", "github", "gitlab", "jupyter", "vs code", "linux", "bash",
     "communication", "teamwork", "leadership", "problem solving",
     "critical thinking", "agile", "scrum",
-
-    # NLP specific
     "text classification", "sentiment analysis", "named entity recognition",
     "ner", "text summarization", "question answering", "information extraction",
     "word embeddings", "word2vec", "glove", "fasttext", "sentence transformers",
     "semantic similarity", "topic modeling", "lda", "tfidf", "tf-idf",
+    "langchain", "faiss", "openai", "groq", "llama", "mistral",
 }
 
 EDUCATION_KEYWORDS = {
@@ -80,22 +58,16 @@ def extract_tech_skills(text: str) -> List[str]:
 
 def extract_education(text: str) -> List[str]:
     text_lower = text.lower()
-    found = []
-    for kw in EDUCATION_KEYWORDS:
-        if kw in text_lower:
-            found.append(kw.title())
-    return sorted(set(found))
+    return sorted({kw.title() for kw in EDUCATION_KEYWORDS if kw in text_lower})
 
 
-def extract_spacy_entities(text: str) -> Dict[str, List[str]]:
-    doc = nlp(text[:10000])
-    entities = {"ORG": [], "GPE": [], "DATE": [], "PERSON": []}
-    for ent in doc.ents:
-        if ent.label_ in entities:
-            clean = ent.text.strip()
-            if len(clean) > 1 and clean not in entities[ent.label_]:
-                entities[ent.label_].append(clean)
-    return entities
+def extract_orgs_regex(text: str) -> List[str]:
+    """Simple regex-based org extraction (no spaCy NER model needed)."""
+    pattern = r'\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3})\b'
+    matches = re.findall(pattern, text)
+    stopwords = {"Responsibilities", "Requirements", "Experience", "Skills",
+                 "Education", "Projects", "Summary", "About", "Role"}
+    return list({m for m in matches if m not in stopwords})[:8]
 
 
 def extract_years_experience(text: str) -> str:
@@ -111,16 +83,16 @@ def extract_years_experience(text: str) -> str:
 
 
 def extract_entities(text: str) -> Dict[str, List[str]]:
-    spacy_ents = extract_spacy_entities(text)
     tech_skills = extract_tech_skills(text)
     education = extract_education(text)
+    orgs = extract_orgs_regex(text)
     exp = extract_years_experience(text)
 
     return {
         "Technical Skills": tech_skills,
         "Education": education,
-        "Organizations": spacy_ents.get("ORG", [])[:8],
-        "Locations": spacy_ents.get("GPE", [])[:5],
+        "Organizations": orgs,
+        "Locations": [],
         "Experience": [exp] if exp != "Not specified" else [],
-        "Dates": spacy_ents.get("DATE", [])[:5],
+        "Dates": [],
     }
