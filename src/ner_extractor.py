@@ -11,9 +11,14 @@ from typing import Dict, List
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    import subprocess
-    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
-    nlp = spacy.load("en_core_web_sm")
+    try:
+        # Try loading via the installed package directly (Streamlit Cloud fix)
+        import en_core_web_sm
+        nlp = en_core_web_sm.load()
+    except ImportError:
+        import subprocess
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
+        nlp = spacy.load("en_core_web_sm")
 
 
 # ── MASTER SKILLS / TECH KEYWORD LIST ────────────────────────────────────────
